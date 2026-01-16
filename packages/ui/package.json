@@ -8,7 +8,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./base.css": "./src/styles/globals.css",
-    "./components": "./src/components/index.ts"
+    "./components": "./src/components/index.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./lib": "./src/lib/utils.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
