@@ -10,3 +10,5 @@ build
 .vercel
 .turbo
 
+bun.lock
+tsconfig.tsbuildinfo
