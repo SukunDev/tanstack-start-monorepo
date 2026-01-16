@@ -1,0 +1,31 @@
+{
+  "name": "tanstack-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "dev:web": "turbo run dev --filter=@apps/web",
+    "dev:api": "turbo run dev --filter=@apps/api",
+    "db:generate": "bun run --filter=@packages/database db:generate",
+    "db:push": "bun run --filter=@packages/database db:push",
+    "db:migrate": "bun run --filter=@packages/database db:migrate",
+    "db:reset": "bun run --filter=@packages/database db:reset",
+    "db:studio": "bun run --filter=@packages/database db:studio"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^7.3.0",
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3",
+    "@types/bun": "latest"
+  },
+  "packageManager": "bun@1.1.0",
+  "module": "index.ts"
+}

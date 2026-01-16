@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  
+}
+
+enum VerificationType  {
+  LOGIN
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+model User {
+  id              Int           @id @default(autoincrement())
+  uuid            String        @default(uuid()) @unique
+  email           String        @unique
+  password        String
+  emailVerifiedAt DateTime?     @map("email_verified_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  profile   Profile?
+  userRoles UserRole[]
+  otps      UserVerification[]
+  
+  @@index([uuid, email])
+  @@map("users")
+}
+
+model Role {
+  id                              Int              @id @default(autoincrement())
+  uuid                            String           @default(uuid()) @unique
+  name                            String           @db.VarChar(255) @unique
+  createdAt                       DateTime         @default(now()) @map("created_at")
+
+  rolePermissions                 RolePermission[]
+  userRoles                       UserRole[]
+
+  @@index([id, uuid, name])
+}
+
+model Permission {
+  id                              Int              @id @default(autoincrement())
+  uuid                            String           @default(uuid()) @unique
+  name                            String           @db.VarChar(255) @unique
+  createdAt                       DateTime         @default(now()) @map("created_at")
+
+  rolePermissions                 RolePermission[]
+
+  @@index([id, uuid, name])
+}
+
+model RolePermission {
+  id                              Int              @id @default(autoincrement())
+  uuid                            String           @default(uuid()) @unique
+  roleId                          Int              @map("role_id")
+  permissionId                    Int              @map("permission_id")
+  createdAt                       DateTime         @default(now()) @map("created_at")
+
+  role                            Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission                      Permission       @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+
+  @@index([id, uuid, roleId, permissionId])
+}
+
+model UserRole {
+  id                              Int              @id @default(autoincrement())
+  uuid                            String           @default(uuid()) @unique
+  userId                          Int              @map("user_id")
+  roleId                          Int              @map("role_id")
+  createdAt                       DateTime         @default(now()) @map("created_at")
+
+  role                            Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user                            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([id, uuid, roleId, userId])
+}
+
+model Profile {
+  id        Int      @id @default(autoincrement())
+  uuid      String   @default(uuid()) @unique
+  userId    Int      @unique @map("user_id")
+  firstName String   @map("first_name")
+  lastName  String   @map("last_name")
+  bio       String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, uuid])
+  @@map("profiles")
+}
+
+model UserVerification {
+  id          Int       @id @default(autoincrement())
+  uuid        String    @default(uuid()) @unique
+
+  userId      Int       @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  codeHash    String    @map("code_hash")
+  purpose     VerificationType 
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, purpose, createdAt])
+  @@index([expiresAt])
+  @@map("user_verifications")
+}

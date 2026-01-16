@@ -1,0 +1,4 @@
+[install]
+auto = true
+production = false
+
