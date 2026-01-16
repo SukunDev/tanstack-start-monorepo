@@ -17,6 +17,7 @@
     "db:generate": "bun run --filter=@packages/database db:generate",
     "db:push": "bun run --filter=@packages/database db:push",
     "db:migrate": "bun run --filter=@packages/database db:migrate",
+    "db:seed": "bun run --filter=@packages/database db:seed",
     "db:reset": "bun run --filter=@packages/database db:reset",
     "db:studio": "bun run --filter=@packages/database db:studio"
   },

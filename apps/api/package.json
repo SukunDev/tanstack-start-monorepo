@@ -18,14 +18,15 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@packages/shared": "workspace:*",
     "@packages/database": "workspace:*",
     "@packages/email": "workspace:*",
-    "express": "^5.2.1",
+    "@packages/shared": "workspace:*",
     "bcrypt": "^5.1.1",
     "body-parser": "^2.2.1",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
     "jsonwebtoken": "^9.0.2"
   }
 }

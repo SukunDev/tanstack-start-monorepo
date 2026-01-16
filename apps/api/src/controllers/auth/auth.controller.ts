@@ -157,6 +157,21 @@ class AuthController {
     );
     return res.status(response.code).json(response);
   };
+
+  logout = async (req: AuthRequest, res: Response) => {
+    console.log(req.user);
+
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        code: 401,
+        message: "Unauthorized",
+        data: null,
+      });
+    }
+    const response = await authService.logout(userId);
+    return res.status(response.code).json(response);
+  };
 }
 
 export default new AuthController();

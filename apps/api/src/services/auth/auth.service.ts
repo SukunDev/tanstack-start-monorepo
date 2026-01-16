@@ -6,9 +6,9 @@ import { emailLib } from "@packages/email";
 import {
   ACCESS_TOKEN_EXPIRE,
   VERIFICATION_EXPIRE_MINUTES,
-  REFRESH_TOKEN_EXPIRE,
   SALT_ROUNDS,
   EMAIL_RATE_LIMIT_MINUTES,
+  REFRESH_TOKEN_TTL_DAYS,
 } from "@packages/shared";
 import crypto from "crypto";
 import { secureRandomString } from "@/utils/secureRandomString";
@@ -45,6 +45,34 @@ class AuthService extends Service {
 
     return { allowed: true };
   };
+
+  private async storeRefreshToken(params: {
+    userId: number;
+    refreshToken: string;
+    userAgent?: string;
+    ipAddress?: string;
+  }) {
+    const tokenHash = await bcrypt.hash(params.refreshToken, SALT_ROUNDS);
+
+    await prisma.userRefreshToken.create({
+      data: {
+        userId: params.userId,
+        tokenHash,
+        userAgent: params.userAgent,
+        ipAddress: params.ipAddress,
+        expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 1000),
+      },
+    });
+  }
+
+  private async getUserRoles(userId: number): Promise<string[]> {
+    const roles = await prisma.userRole.findMany({
+      where: { userId },
+      include: { role: true },
+    });
+
+    return roles.map((r) => r.role.name);
+  }
 
   register = async (email: string, password: string) => {
     const exists = await prisma.user.findUnique({
@@ -86,6 +114,18 @@ class AuthService extends Service {
       email,
       `${APPS_URL}/verify-email?token=${token}`
     );
+
+    const role = await prisma.role.findFirst({
+      where: { name: "Users" },
+    });
+    if (role) {
+      await prisma.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: role.id,
+        },
+      });
+    }
 
     return this.response({
       code: 201,
@@ -323,17 +363,24 @@ class AuthService extends Service {
       data: { usedAt: new Date() },
     });
 
+    const roles = await this.getUserRoles(userId);
+
     const accessToken = jwt.sign(
-      { type: "access_token", id: userId },
+      {
+        type: "access_token",
+        id: userId,
+        roles,
+      },
       JWT_SECRET,
       { expiresIn: ACCESS_TOKEN_EXPIRE }
     );
 
-    const refreshToken = jwt.sign(
-      { type: "refresh_token", id: userId },
-      JWT_SECRET,
-      { expiresIn: REFRESH_TOKEN_EXPIRE }
-    );
+    const refreshToken = secureRandomString(64);
+
+    await this.storeRefreshToken({
+      userId,
+      refreshToken,
+    });
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -437,11 +484,22 @@ class AuthService extends Service {
   };
 
   refreshToken = async (refreshToken: string) => {
-    let payload: jwt.JwtPayload;
+    const tokens = await prisma.userRefreshToken.findMany({
+      where: {
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      include: { user: true },
+    });
 
-    try {
-      payload = jwt.verify(refreshToken, JWT_SECRET) as jwt.JwtPayload;
-    } catch {
+    const matched = await Promise.all(
+      tokens.map(async (t) => ({
+        token: t,
+        valid: await bcrypt.compare(refreshToken, t.tokenHash),
+      }))
+    ).then((r) => r.find((x) => x.valid)?.token);
+
+    if (!matched) {
       return this.response({
         code: 401,
         data: null,
@@ -449,37 +507,30 @@ class AuthService extends Service {
       });
     }
 
-    if (payload.type !== "refresh_token") {
-      return this.response({
-        code: 403,
-        data: null,
-        message: "Invalid token type",
-      });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id },
+    // revoke old token
+    await prisma.userRefreshToken.update({
+      where: { id: matched.id },
+      data: { revokedAt: new Date() },
     });
 
-    if (!user) {
-      return this.response({
-        code: 404,
-        data: null,
-        message: "User not found",
-      });
-    }
+    const roles = await this.getUserRoles(matched.userId);
 
     const newAccessToken = jwt.sign(
-      { type: "access_token", id: user.id },
+      {
+        type: "access_token",
+        id: matched.userId,
+        roles,
+      },
       JWT_SECRET,
       { expiresIn: ACCESS_TOKEN_EXPIRE }
     );
 
-    const newRefreshToken = jwt.sign(
-      { type: "refresh_token", id: user.id },
-      JWT_SECRET,
-      { expiresIn: REFRESH_TOKEN_EXPIRE }
-    );
+    const newRefreshToken = secureRandomString(64);
+
+    await this.storeRefreshToken({
+      userId: matched.userId,
+      refreshToken: newRefreshToken,
+    });
 
     return this.response({
       code: 200,
@@ -591,6 +642,24 @@ class AuthService extends Service {
       code: 200,
       data: null,
       message: "Password reset successful",
+    });
+  };
+
+  logout = async (userId: number) => {
+    await prisma.userRefreshToken.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+
+    return this.response({
+      code: 200,
+      data: null,
+      message: "Logged out from all devices",
     });
   };
 }

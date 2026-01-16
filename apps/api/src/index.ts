@@ -6,6 +6,7 @@ import routes from "./routes";
 import { Service } from "./services/service";
 import path from "path";
 import dotenv from "dotenv";
+import { rateLimiter } from "./middleware";
 
 dotenv.config();
 
@@ -46,6 +47,13 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(express.static(path.join(process.cwd(), "public")));
+
+app.use(
+  rateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+  })
+);
 
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();

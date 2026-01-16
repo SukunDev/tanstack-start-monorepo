@@ -1,4 +1,4 @@
-import { prisma } from "../../index";
+import { prisma } from "../../src/index";
 
 async function seedRolePermission() {
   const roles = [{ name: "Admin" }, { name: "Users" }];

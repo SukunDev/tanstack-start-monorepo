@@ -82,6 +82,21 @@ CREATE TABLE "user_verifications" (
     CONSTRAINT "user_verifications_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "user_refresh_tokens" (
+    "id" SERIAL NOT NULL,
+    "uuid" TEXT NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "token_hash" TEXT NOT NULL,
+    "user_agent" TEXT,
+    "ip_address" TEXT,
+    "revoked_at" TIMESTAMP(3),
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "user_refresh_tokens_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_uuid_key" ON "users"("uuid");
 
@@ -145,6 +160,18 @@ CREATE INDEX "user_verifications_user_id_purpose_created_at_idx" ON "user_verifi
 -- CreateIndex
 CREATE INDEX "user_verifications_expires_at_idx" ON "user_verifications"("expires_at");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "user_refresh_tokens_uuid_key" ON "user_refresh_tokens"("uuid");
+
+-- CreateIndex
+CREATE INDEX "user_refresh_tokens_user_id_idx" ON "user_refresh_tokens"("user_id");
+
+-- CreateIndex
+CREATE INDEX "user_refresh_tokens_expires_at_idx" ON "user_refresh_tokens"("expires_at");
+
+-- CreateIndex
+CREATE INDEX "user_refresh_tokens_revoked_at_idx" ON "user_refresh_tokens"("revoked_at");
+
 -- AddForeignKey
 ALTER TABLE "RolePermission" ADD CONSTRAINT "RolePermission_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "Role"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -162,3 +189,6 @@ ALTER TABLE "profiles" ADD CONSTRAINT "profiles_user_id_fkey" FOREIGN KEY ("user
 
 -- AddForeignKey
 ALTER TABLE "user_verifications" ADD CONSTRAINT "user_verifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "user_refresh_tokens" ADD CONSTRAINT "user_refresh_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

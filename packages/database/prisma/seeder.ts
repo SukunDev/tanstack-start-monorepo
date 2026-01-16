@@ -1,4 +1,4 @@
-import { prisma } from "../index";
+import { prisma } from "../src/index";
 import seedRolePermission from "./seeders/rolePermission.seeder";
 
 async function runAllSeeders() {
