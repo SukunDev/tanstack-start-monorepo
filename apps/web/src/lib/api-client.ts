@@ -1,6 +1,7 @@
 import { authStore } from "./auth-store";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export interface ApiResponse<T = any> {
   code: number;
@@ -46,7 +47,10 @@ class ApiClient {
     return authStore.getAccessToken();
   }
 
-  async get<T>(endpoint: string, customToken?: string): Promise<ApiResponse<T>> {
+  async get<T>(
+    endpoint: string,
+    customToken?: string
+  ): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { method: "GET" }, customToken);
   }
 
@@ -104,4 +108,3 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
-
